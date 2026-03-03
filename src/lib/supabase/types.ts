@@ -25,6 +25,7 @@ export type Database = {
           total_races?: number
           best_wpm?: number
         }
+        Relationships: []
       }
       rounds: {
         Row: {
@@ -48,6 +49,7 @@ export type Database = {
           ends_at?: string
           is_active?: boolean
         }
+        Relationships: []
       }
       round_results: {
         Row: {
@@ -74,12 +76,16 @@ export type Database = {
           accuracy?: number
           finished_at?: string
         }
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 
-// Convenience types
 export type Player = Database['public']['Tables']['players']['Row']
 export type Round = Database['public']['Tables']['rounds']['Row']
 export type RoundResult = Database['public']['Tables']['round_results']['Row']
