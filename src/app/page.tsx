@@ -1,20 +1,43 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { PersonalBests } from '@/components/game/PersonalBests'
 import { PlayerNameModal } from '@/components/game/PlayerNameModal'
 import { RoundTimer } from '@/components/game/RoundTimer'
 import { SentenceDisplay } from '@/components/game/SentenceDisplay'
 import { TypingInput } from '@/components/game/TypingInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameRound } from '@/hooks/useGameRound'
+import { usePersonalBests } from '@/hooks/usePersonalBests'
 import { useTyping } from '@/hooks/useTyping'
 
-function GameArea({ sentence }: { sentence: string }) {
-  const { typedText, wpm, accuracy, isFinished, hasStarted, handleChange } = useTyping(sentence)
+function GameArea({
+  sentence,
+  onFinish,
+  onResult,
+  frozen,
+}: {
+  sentence: string
+  onFinish: () => void
+  onResult: (wpm: number, hadError: boolean) => void
+  frozen: boolean
+}) {
+  const { typedText, wpm, accuracy, isFinished, hasStarted, handleChange } = useTyping(
+    sentence,
+    (finalWpm, hadError) => {
+      onResult(finalWpm, hadError)
+      onFinish()
+    }
+  )
 
   return (
     <div className="space-y-4">
       <SentenceDisplay sentence={sentence} typedText={typedText} />
-      <TypingInput value={typedText} onChange={handleChange} disabled={isFinished} />
+      <TypingInput
+        value={typedText}
+        onChange={handleChange}
+        disabled={isFinished || frozen}
+      />
       {!hasStarted ? (
         <p className="text-sm text-gray-400 italic">Start typing to begin your timer…</p>
       ) : (
@@ -39,7 +62,8 @@ function GameArea({ sentence }: { sentence: string }) {
 
 export default function Home() {
   const { state: authState, signIn } = useAuth()
-  const roundState = useGameRound()
+  const { state: roundState, startRound, finishRound } = useGameRound()
+  const { bests, recordResult } = usePersonalBests()
 
   if (authState.status === 'loading') {
     return (
@@ -66,18 +90,43 @@ export default function Home() {
           )}
         </div>
 
-        {roundState.status === 'loading' && <p className="text-gray-400">Loading round...</p>}
-        {roundState.status === 'error' && <p className="text-gray-400">{roundState.message}</p>}
-        {roundState.status === 'finished' && (
-          <p className="text-gray-400">Round finished. Waiting for next round...</p>
-        )}
+        <div className="flex items-center justify-between">
+          <RoundTimer
+            secondsLeft={
+              roundState.status === 'active' || roundState.status === 'finished'
+                ? roundState.secondsLeft
+                : 0
+            }
+          />
+          <Button
+            onClick={startRound}
+            disabled={roundState.status === 'active' || roundState.status === 'countdown'}
+            variant="default"
+            size="sm"
+          >
+            New Round
+          </Button>
+        </div>
 
-        {roundState.status === 'active' && (
-          <div className="space-y-4">
-            <RoundTimer secondsLeft={roundState.secondsLeft} />
-            <GameArea sentence={roundState.round.sentence} />
+        {roundState.status === 'countdown' && (
+          <div className="flex items-center justify-center py-16">
+            <span className="font-mono text-8xl font-bold text-zinc-900 dark:text-zinc-100">
+              {roundState.count}
+            </span>
           </div>
         )}
+
+        {(roundState.status === 'active' || roundState.status === 'finished') && (
+          <GameArea
+            key={roundState.round.id}
+            sentence={roundState.round.sentence}
+            onFinish={finishRound}
+            onResult={recordResult}
+            frozen={roundState.status === 'finished'}
+          />
+        )}
+
+        <PersonalBests bestWpm={bests.bestWpm} bestPerfectWpm={bests.bestPerfectWpm} />
       </main>
     </div>
   )
