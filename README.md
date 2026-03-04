@@ -70,3 +70,80 @@ There are no strict requirements for sentence source except that sentences shoul
 Once you're done, send us a confirmation email. After you submit your code, we will contact you to discuss next steps.
 
 Good luck! 💪
+
+---------------------------------------------------------------------------------------------------
+
+## My Solution
+
+### Live Demo
+https://nextjs-coding-challenge-nine.vercel.app
+
+### How to run
+
+```bash
+pnpm install
+pnpm dev       # http://localhost:3000
+pnpm test      # run unit tests
+pnpm build     # production build
+```
+
+**Required environment variables** (`.env.local`):
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_HCAPTCHA_SITE_KEY=
+```
+
+---
+
+### Tech stack choices
+
+- Framework | Next.js 16 (App Router). Required. Server Components for API routes, Client Components for game UI |
+- Backend | Supabase. Works natively with Next.js SSR, provides Postgres + anonymous auth + Realtime in one platform |
+- Styling | Tailwind CSS v4. Fast iteration, no context switching |
+- Components | shadcn/ui. Unstyled accessible primitives, no lock-in |
+- Auth | Supabase anonymous auth + hCaptcha. No registration friction – player just picks a name and plays |
+- State | React hooks + localStorage. No global state manager needed at this scale; `usePersonalBests` documents where Zustand would go when expanding |
+- Testing | Vitest + Testing Library. Fast, native ESM, works with the same tsconfig paths |
+
+---
+
+### What's implemented
+
+- **Anonymous auth** with hCaptcha – player picks a display name, gets a persistent anonymous Supabase session
+- **Game loop** – "New Round" button → 3-2-1 countdown → 60s timer → freeze on finish or sentence completion
+- **Typing mechanics** – per-character coloured display, WPM calculated from first keystroke, accuracy per character
+- **Personal bests** – stored in `localStorage`: best WPM overall and best WPM with zero errors (error tracking is sticky – fixing a typo doesn't erase it)
+- **20 sentences** stored in Supabase, randomly selected on each round start
+- **Unit tests** – 22 tests covering `calculateWpm`, `calculateAccuracy`, and `useTyping` hook
+
+---
+
+### What are the possible next steps if I had more time?
+
+- **Realtime leaderboard** via Supabase Broadcast – all players in the same round see each other's live progress in a table (Live progress column, WPM, accuracy)
+- **Persist results to Supabase** – `round_results` table is already typed and ready; would save WPM + accuracy per player per round
+- **Table UX** – sort by column, pagination, URL-synced sort state so refresh preserves order
+- **Rate limiting** on `/api/rounds` – simple check to prevent abuse
+- **E2E tests** with Playwright – happy path: enter name → complete captcha → play round → see result
+
+---
+
+### AI usage
+Given time and the requirements, I have decided to use AI assistance in certain areas to maximise output. I am aware that the challenge is designed to see my skills and judgement, so I used AI as a tool to speed up some things and have fun building the app, remembering about the overall goal of the exercise.
+
+I used AI:
+- to prepare an initial plan for the project structure and architecture. Then I adjusted it to my experience and preferences. I have done my research afterwards to clarify if this approach is valid.
+- at the beginning to setup the project quickly to work with Supabase and hCaptcha. It saved me a lot of time on configuration and boilerplate, so I could focus on the game logic and mechanics.
+- to implement the hooks (`useTyping`, `useGameRound`, `usePersonalBests`, `useAuth`) and the main `page.tsx` composition.
+- to scaffold the unit tests and to clean up any left mess or overcomplicated code which was generated at the beginning.
+
+I personally:
+- wrote all components inside `src/components/game` – the core visual and interactive layer of the app.
+- reviewed all the logic, caught bugs (e.g. React render-phase `setState` errors, stale WPM values on completion) and directed the fixes.
+- tested the app manually, iterating on the game mechanics and UX details (e.g. when to start the timer, how to handle accuracy tracking, what personal bests to show).
+- made all decisions on tech stack, architecture, and implementation details based on my experience and judgement.
+- deployed the app to Vercel.
+
+All AI-generated code was reviewed, adjusted and committed by me. Nothing was blindly copy-pasted.
+
