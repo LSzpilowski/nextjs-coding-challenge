@@ -8,22 +8,16 @@ export type Database = {
           id: string
           name: string
           created_at: string
-          total_races: number
-          best_wpm: number
         }
         Insert: {
           id: string
           name: string
           created_at?: string
-          total_races?: number
-          best_wpm?: number
         }
         Update: {
           id?: string
           name?: string
           created_at?: string
-          total_races?: number
-          best_wpm?: number
         }
         Relationships: []
       }
@@ -39,7 +33,7 @@ export type Database = {
           id?: string
           sentence: string
           started_at?: string
-          ends_at: string
+          ends_at?: string
           is_active?: boolean
         }
         Update: {

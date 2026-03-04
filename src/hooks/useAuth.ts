@@ -70,22 +70,5 @@ export function useAuth() {
     [supabase]
   )
 
-  const updateName = useCallback(
-    async (name: string): Promise<{ error: string | null }> => {
-      if (state.status !== 'authenticated') return { error: 'Not authenticated' }
-
-      const { error } = await supabase
-        .from('players')
-        .update({ name })
-        .eq('id', state.player.id)
-
-      if (error) return { error: error.message }
-
-      setState({ status: 'authenticated', player: { ...state.player, name } })
-      return { error: null }
-    },
-    [state, supabase]
-  )
-
-  return { state, signIn, updateName }
+  return { state, signIn }
 }
