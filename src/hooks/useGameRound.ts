@@ -1,75 +1,64 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import type { Round } from '@/lib/supabase/types'
 
 type RoundState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'idle' }
+  | { status: 'countdown'; count: 3 | 2 | 1 }
   | { status: 'active'; round: Round; secondsLeft: number }
-  | { status: 'finished'; round: Round }
+  | { status: 'finished'; round: Round; secondsLeft: number }
+
+const ROUND_DURATION = 60
+const COUNTDOWN_START = 3
 
 export function useGameRound() {
-  const [state, setState] = useState<RoundState>({ status: 'loading' })
+  const [state, setState] = useState<RoundState>({ status: 'idle' })
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const fetchRoundRef = useRef<() => Promise<void>>(async () => {})
 
-  const clearTimers = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (pollRef.current) clearTimeout(pollRef.current)
-  }
-
-  useEffect(() => {
-    fetchRoundRef.current = async () => {
-      try {
-        const res = await fetch('/api/rounds')
-
-        if (!res.ok) {
-          setState({ status: 'error', message: 'Waiting for next round...' })
-          pollRef.current = setTimeout(() => fetchRoundRef.current(), 3000)
-          return
-        }
-
-        const round: Round = await res.json()
-        const endsAt = new Date(round.ends_at).getTime()
-        const now = Date.now()
-        const secondsLeft = Math.max(0, Math.floor((endsAt - now) / 1000))
-
-        if (secondsLeft <= 0) {
-          setState({ status: 'finished', round })
-          pollRef.current = setTimeout(() => fetchRoundRef.current(), 3000)
-          return
-        }
-
-        setState({ status: 'active', round, secondsLeft })
-
-        clearInterval(timerRef.current!)
-        timerRef.current = setInterval(() => {
-          setState((prev) => {
-            if (prev.status !== 'active') return prev
-
-            const newSeconds = prev.secondsLeft - 1
-
-            if (newSeconds <= 0) {
-              clearInterval(timerRef.current!)
-              pollRef.current = setTimeout(() => fetchRoundRef.current(), 2000)
-              return { status: 'finished', round: prev.round }
-            }
-
-            return { ...prev, secondsLeft: newSeconds }
-          })
-        }, 1000)
-      } catch {
-        setState({ status: 'error', message: 'Failed to connect. Retrying...' })
-        pollRef.current = setTimeout(() => fetchRoundRef.current(), 3000)
-      }
+  const finishRound = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
     }
-
-    fetchRoundRef.current()
-
-    return clearTimers
+    setState((prev) => {
+      if (prev.status !== 'active') return prev
+      return { status: 'finished', round: prev.round, secondsLeft: prev.secondsLeft }
+    })
   }, [])
 
-  return state
+  const startRound = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+
+    const roundPromise = fetch('/api/rounds').then((r) => (r.ok ? r.json() : null))
+
+    let count = COUNTDOWN_START
+    setState({ status: 'countdown', count: count as 3 | 2 | 1 })
+
+    timerRef.current = setInterval(async () => {
+      count -= 1
+      if (count <= 0) {
+        clearInterval(timerRef.current!)
+        const round: Round | null = await roundPromise
+        if (!round) { setState({ status: 'idle' }); return }
+
+        let secondsLeft = ROUND_DURATION
+        setState({ status: 'active', round, secondsLeft })
+
+        timerRef.current = setInterval(() => {
+          secondsLeft -= 1
+          if (secondsLeft <= 0) {
+            clearInterval(timerRef.current!)
+            setState({ status: 'finished', round, secondsLeft: 0 })
+          } else {
+            setState({ status: 'active', round, secondsLeft })
+          }
+        }, 1000)
+      } else {
+        setState({ status: 'countdown', count: count as 3 | 2 | 1 })
+      }
+    }, 1000)
+  }, [])
+
+  return { state, startRound, finishRound }
 }

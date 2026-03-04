@@ -7,7 +7,7 @@ interface RoundTimerProps {
 export function RoundTimer({ secondsLeft }: RoundTimerProps) {
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
-  const isUrgent = secondsLeft <= 10
+  const isUrgent = secondsLeft > 0 && secondsLeft <= 10
 
   return (
     <div className="flex items-center gap-2">
@@ -17,9 +17,11 @@ export function RoundTimer({ secondsLeft }: RoundTimerProps) {
           isUrgent ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'
         }`}
       >
-        {minutes > 0
-          ? `${minutes}:${String(seconds).padStart(2, '0')}`
-          : `${seconds}s`}
+        {secondsLeft === 0
+          ? '0:00'
+          : minutes > 0
+            ? `${minutes}:${String(seconds).padStart(2, '0')}`
+            : `${seconds}s`}
       </span>
     </div>
   )
